@@ -458,7 +458,7 @@ small, .stCaption p {
 
 st.markdown("""
 <div style="background:#1a1a1a;border-radius:16px;padding:40px 44px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;gap:24px;">
-    <p style="font-family:'Times New Roman',serif;font-size:86px;font-weight:900;color:#f7f4ef;letter-spacing:-4px;margin:0;line-height:0.9;flex-shrink:0;">Labelyze</p>
+    <p style="font-family:'Times New Roman',serif;font-size:130px;font-weight:900;color:#f7f4ef;letter-spacing:-6px;margin:0;line-height:0.9;flex-shrink:0;">Labelyze</p>
     <div style="border-left:1px solid #444;padding-left:28px;">
         <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin:0 0 8px 0;">About</p>
         <p style="font-size:15px;font-weight:500;color:#ccc;margin:0;line-height:1.6;">AI-powered pharmaceutical label compliance &amp; batch release verification</p>
