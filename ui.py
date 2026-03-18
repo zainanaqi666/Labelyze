@@ -50,16 +50,21 @@ def generate_pdf_report(risk, mode, label_type, drug_name="", drug_info=None):
     def info_row(label1, val1, label2, val2):
         pdf.set_x(15)
         pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(38, row_h, label1, border=1)
+        pdf.cell(35, row_h, label1, border=1)
         pdf.set_font("Helvetica", "", 9)
-        pdf.cell(52, row_h, val1, border=1)
+        y = pdf.get_y()
+        pdf.multi_cell(55, row_h, val1, border=1)
+        new_y = pdf.get_y()
+        pdf.set_xy(105, y)
         pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(38, row_h, label2, border=1)
+        pdf.cell(35, row_h, label2, border=1)
         pdf.set_font("Helvetica", "", 9)
-        pdf.cell(52, row_h, val2, border=1, ln=True)
+        pdf.multi_cell(45, row_h, val2, border=1)
+        if pdf.get_y() < new_y:
+            pdf.set_y(new_y)
 
     info_row("Date of Review:", date_str, "Time:", time_str)
-    info_row("Product / Drug:", (clean(drug_name[:38]) if drug_name else "As per label"), "Label Type:", label_type[:38])
+    info_row("Product / Drug:", (clean(drug_name) if drug_name else "As per label"), "Label Type:", label_type)
     info_row("Regulatory Context:", ("CDSCO / Schedule M" if mode == "cdsco" else "FDA 21 CFR 201"), "Review Type:", "Label Compliance")
     if drug_info:
         info_row("Drug Schedule:", drug_info["label"][:38], "Drug Category:", drug_info["category"][:38])
@@ -348,9 +353,9 @@ div[data-testid="stFileUploader"] small {
 }
 
 .stButton > button {
-    background-color: #1a1a1a !important;
-    color: #f7f4ef !important;
-    border: none !important;
+    background-color: #f7f4ef !important;
+    color: #1a1a1a !important;
+    border: 2px solid #1a1a1a !important;
     border-radius: 8px !important;
     font-size: 16px !important;
     font-weight: 700 !important;
@@ -361,13 +366,14 @@ div[data-testid="stFileUploader"] small {
 }
 
 .stButton > button:hover {
-    background-color: #333 !important;
-    color: #f7f4ef !important;
+    background-color: #eee8dc !important;
+    color: #1a1a1a !important;
 }
 
 .stButton > button:disabled {
     background-color: #ccc8c0 !important;
     color: #888 !important;
+    border: 2px solid #aaa !important;
 }
 
 .stDownloadButton > button {
@@ -452,7 +458,7 @@ small, .stCaption p {
 
 st.markdown("""
 <div class="brand-box">
-    <p style="font-family:'Times New Roman',serif;font-size:240px;font-weight:900;color:#1a1a1a;letter-spacing:0px;margin:0;line-height:1;text-align:center;">Labelyze</p>
+    <p style="font-family:'Times New Roman',serif;font-size:300px;font-weight:900;color:#1a1a1a;letter-spacing:0px;margin:0;line-height:1;text-align:center;">Labelyze</p>
     <p class="brand-sub">AI-powered pharmaceutical label compliance<br>&amp; batch release verification</p>
 </div>
 """, unsafe_allow_html=True)
