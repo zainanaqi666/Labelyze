@@ -1,3 +1,8 @@
+# © 2026 Zaina Naqi. All rights reserved.
+# Labelyze — AI-Powered Pharmaceutical Label Compliance Tool
+# Unauthorised commercial use is prohibited.
+# Licensed under CC BY-NC 4.0 — see LICENSE file for details.
+# Contact: zainanaqi666@gmail.com
 from modules.schedule_m_reference import SCHEDULE_M_CHECKLIST
 
 FDA_SECTIONS = [
