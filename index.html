@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Labelyze — AI Pharmaceutical Label Compliance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2e;
+    --navy2: #112240;
+    --gold: #c9a84c;
+    --gold2: #e8c96d;
+    --cream: #f5f0e8;
+    --white: #ffffff;
+    --muted: #8892a4;
+    --green: #64ffda;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--gold);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.1s ease;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.15s ease;
+    opacity: 0.6;
+  }
+
+  /* Canvas for 3D particles */
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 24px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(13,27,46,0.95), transparent);
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -0.5px;
+  }
+
+  .nav-logo span { color: var(--gold); }
+
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover { color: var(--gold); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 60px;
+    padding-top: 120px;
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 36px;
+    width: fit-content;
+    letter-spacing: 0.05em;
+    animation: fadeUp 0.8s ease forwards;
+    opacity: 0;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(64px, 10vw, 130px);
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -3px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.8s ease 0.1s forwards;
+    opacity: 0;
+  }
+
+  .hero-title .line1 { display: block; color: var(--white); }
+  .hero-title .line2 {
+    display: block;
+    color: transparent;
+    -webkit-text-stroke: 2px var(--gold);
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 520px;
+    line-height: 1.7;
+    margin-bottom: 48px;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+    opacity: 0;
+  }
+
+  .hero-subtitle strong {
+    color: var(--cream);
+    font-weight: 500;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 16px;
+    animation: fadeUp 0.8s ease 0.3s forwards;
+    opacity: 0;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gold);
+    color: var(--navy);
+    padding: 16px 32px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gold2);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .btn-primary:hover::before { transform: translateX(0); }
+  .btn-primary span { position: relative; z-index: 1; }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    color: var(--white);
+    padding: 16px 32px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 48px;
+    left: 60px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    animation: fadeUp 0.8s ease 0.5s forwards;
+    opacity: 0;
+  }
+
+  .scroll-line {
+    width: 40px;
+    height: 1px;
+    background: var(--muted);
+    animation: scrollLine 2s ease infinite;
+  }
+
+  @keyframes scrollLine {
+    0%, 100% { width: 40px; opacity: 1; }
+    50% { width: 20px; opacity: 0.4; }
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    position: relative;
+    z-index: 1;
+    padding: 0 60px;
+    margin-bottom: 120px;
+  }
+
+  .stats-inner {
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 40px 60px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: rgba(17,34,64,0.6);
+    backdrop-filter: blur(20px);
+  }
+
+  .stat-item {
+    padding: 0 40px;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .stat-item:first-child { padding-left: 0; }
+  .stat-item:last-child { border-right: none; }
+
+  .stat-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  /* HOW IT WORKS */
+  .section {
+    position: relative;
+    z-index: 1;
+    padding: 80px 60px;
+  }
+
+  .section-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin-bottom: 60px;
+    max-width: 600px;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+  }
+
+  .step-card {
+    background: rgba(17,34,64,0.5);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 32px 24px;
+    position: relative;
+    transition: all 0.4s ease;
+    overflow: hidden;
+  }
+
+  .step-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+  }
+
+  .step-card:hover {
+    background: rgba(201,168,76,0.05);
+    transform: translateY(-4px);
+  }
+
+  .step-card:hover::before { transform: scaleX(1); }
+
+  .step-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: rgba(201,168,76,0.15);
+    line-height: 1;
+    margin-bottom: 20px;
+    transition: color 0.4s;
+  }
+
+  .step-card:hover .step-num { color: rgba(201,168,76,0.4); }
+
+  .step-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  .step-body {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* FEATURES */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-top: 60px;
+  }
+
+  .feature-card {
+    background: rgba(17,34,64,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 40px;
+    transition: all 0.4s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 0;
+    background: var(--gold);
+    transition: height 0.4s ease;
+  }
+
+  .feature-card:hover::after { height: 100%; }
+  .feature-card:hover { background: rgba(201,168,76,0.04); }
+
+  .feature-icon {
+    width: 44px; height: 44px;
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    font-size: 20px;
+  }
+
+  .feature-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--white);
+  }
+
+  .feature-body {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* REGULATORY SECTION */
+  .reg-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+  }
+
+  .reg-card {
+    background: rgba(17,34,64,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 28px 32px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    transition: background 0.3s;
+  }
+
+  .reg-card:hover { background: rgba(201,168,76,0.04); }
+
+  .reg-dot {
+    width: 8px; height: 8px;
+    background: var(--gold);
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+
+  .reg-law {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .reg-coverage {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* CTA SECTION */
+  .cta-section {
+    position: relative;
+    z-index: 1;
+    padding: 120px 60px;
+    text-align: center;
+  }
+
+  .cta-inner {
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    padding: 80px 60px;
+    background: rgba(17,34,64,0.6);
+    backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-inner::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at center, rgba(201,168,76,0.05) 0%, transparent 60%);
+    animation: rotate 20s linear infinite;
+  }
+
+  @keyframes rotate { to { transform: rotate(360deg); } }
+
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 900;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .cta-sub {
+    font-size: 18px;
+    color: var(--muted);
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .cta-sub em { color: var(--gold); font-style: normal; }
+
+  .cta-btns {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    padding: 40px 60px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--white);
+  }
+
+  .footer-logo span { color: var(--gold); }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+  }
+
+  .footer-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+    transition: color 0.3s;
+  }
+
+  .footer-links a:hover { color: var(--gold); }
+
+  .footer-copy {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* FLOATING LABEL BADGE */
+  .floating-badge {
+    position: absolute;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(-50%) translateY(0); }
+    50% { transform: translateY(-50%) translateY(-20px); }
+  }
+
+  .badge-card {
+    background: rgba(17,34,64,0.9);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 12px;
+    padding: 24px 28px;
+    backdrop-filter: blur(20px);
+    width: 280px;
+  }
+
+  .badge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .badge-title {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .badge-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .badge-status::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .badge-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .badge-label { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+  .badge-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .badge-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+  }
+
+  .badge-item-name { color: var(--muted); }
+
+  .badge-pass {
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+  }
+
+  .badge-fail {
+    color: #ff6b6b;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+  }
+
+  @media (max-width: 1024px) {
+    .floating-badge { display: none; }
+    .steps-grid { grid-template-columns: repeat(2, 1fr); }
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
+    nav { padding: 20px 30px; }
+    .hero, .section, .stats-bar, .cta-section, footer { padding-left: 30px; padding-right: 30px; }
+    .stats-inner { grid-template-columns: repeat(2, 1fr); padding: 30px; }
+    .stat-item { padding: 20px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .reg-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<canvas id="bg-canvas"></canvas>
+
+<nav>
+  <div class="nav-logo">Label<span>yze</span></div>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#regulatory">Regulatory</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <div class="hero-tag">AI-Powered · Schedule M · CDSCO · FDA</div>
+  <h1 class="hero-title">
+    <span class="line1">Label</span>
+    <span class="line2">Compliance.</span>
+  </h1>
+  <p class="hero-subtitle">
+    Pharmaceutical label verification in <strong>seconds</strong>, not hours.
+    AI-powered compliance checks against <strong>CDSCO Schedule M</strong> and
+    FDA guidelines — with instant deviation reports.
+  </p>
+  <div class="hero-ctas">
+    <a href="https://labelyze-ksf49tykdvbqgkw2if46mb.streamlit.app" target="_blank" class="btn-primary">
+      <span>Launch Labelyze</span>
+      <span>→</span>
+    </a>
+    <a href="https://github.com/zainanaqi666/Labelyze" target="_blank" class="btn-secondary">
+      View on GitHub
+    </a>
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    Scroll to explore
+  </div>
+
+  <div class="floating-badge">
+    <div class="badge-card">
+      <div class="badge-header">
+        <span class="badge-title">Compliance Report</span>
+        <span class="badge-status">Live</span>
+      </div>
+      <div class="badge-score">94%</div>
+      <div class="badge-label">Compliance Score — LOW RISK</div>
+      <div class="badge-items">
+        <div class="badge-item">
+          <span class="badge-item-name">Drug name & strength</span>
+          <span class="badge-pass">PASS</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-item-name">Batch / lot number</span>
+          <span class="badge-pass">PASS</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-item-name">Schedule H marking</span>
+          <span class="badge-pass">PASS</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-item-name">Manufacturing licence</span>
+          <span class="badge-pass">PASS</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-item-name">MRP declaration</span>
+          <span class="badge-fail">REVIEW</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="stats-bar reveal">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-number">3,000+</div>
+      <div class="stat-label">Licensed pharma manufacturers<br>in India</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">100+</div>
+      <div class="stat-label">Drugs in schedule<br>classification database</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">10</div>
+      <div class="stat-label">Mandatory Schedule M<br>checks per label</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">Free</div>
+      <div class="stat-label">No licence fees.<br>No implementation cost.</div>
+    </div>
+  </div>
+</div>
+
+<section class="section" id="how">
+  <div class="section-tag">Process</div>
+  <h2 class="section-title reveal">How Labelyze works</h2>
+  <div class="steps-grid reveal">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-title">Upload Label</div>
+      <div class="step-body">Photo, PDF, or paste text directly. Tesseract OCR extracts the text automatically from images.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-title">AI Analysis</div>
+      <div class="step-body">Sentence Transformers NLP model checks meaning — not just keywords. Understands context the way a reviewer would.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-title">Schedule Check</div>
+      <div class="step-body">Drug identified from 100+ compound database. Schedule H, H1, X, OTC, or banned status confirmed instantly.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-title">Risk Score</div>
+      <div class="step-body">Compliance score calculated. Risk level: LOW, MEDIUM, or HIGH. Clear release decision generated.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">05</div>
+      <div class="step-title">Deviation Report</div>
+      <div class="step-body">PDF report with findings, rule citations, corrective action box, and QA sign-off section — ready to attach to batch records.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="section-tag">Capabilities</div>
+  <h2 class="section-title reveal">Built for QA teams.<br>Not enterprise budgets.</h2>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">AI Semantic Matching</div>
+      <div class="feature-body">Uses Microsoft's all-MiniLM-L6-v2 model to understand label text beyond keywords. Detects "Valid until" as an expiry date even without the word "expiry".</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🛡</div>
+      <div class="feature-title">Banned Drug Detection</div>
+      <div class="feature-body">Identifies drugs banned in India under Section 26A of the Drugs & Cosmetics Act — with plain-English regulatory explanations per compound.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">📋</div>
+      <div class="feature-title">QA Deviation Reports</div>
+      <div class="feature-body">Generates professional PDF reports with compliance scores, risk levels, critical findings, and sign-off sections — formatted for batch records.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🔬</div>
+      <div class="feature-title">Drug Schedule Database</div>
+      <div class="feature-body">100+ compound database covering Schedule H, H1, X, OTC classifications. Know which schedule your drug belongs to before release.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🌐</div>
+      <div class="feature-title">Dual Market Mode</div>
+      <div class="feature-body">Indian market (CDSCO Schedule M) and International export (FDA/ICH guidelines) — in one tool. Built for India's export-oriented manufacturers.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">💊</div>
+      <div class="feature-title">FDA DailyMed Integration</div>
+      <div class="feature-body">Live connection to the US National Library of Medicine's drug label database for FDA reference label comparison in export mode.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="regulatory">
+  <div class="section-tag">Regulatory Coverage</div>
+  <h2 class="section-title reveal">A regulatory knowledge<br>engine — not a checklist.</h2>
+  <div class="reg-grid reveal">
+    <div class="reg-card">
+      <div class="reg-dot"></div>
+      <div>
+        <div class="reg-law">Drugs & Cosmetics Act 1940</div>
+        <div class="reg-coverage">Primary Indian legislation — Section 26A banned drugs</div>
+      </div>
+    </div>
+    <div class="reg-card">
+      <div class="reg-dot"></div>
+      <div>
+        <div class="reg-law">D&C Rules 1945 — Rule 96</div>
+        <div class="reg-coverage">10 mandatory label requirements for all drugs</div>
+      </div>
+    </div>
+    <div class="reg-card">
+      <div class="reg-dot"></div>
+      <div>
+        <div class="reg-law">Schedule M (2023 Amendment)</div>
+        <div class="reg-coverage">GMP requirements including labelling standards</div>
+      </div>
+    </div>
+    <div class="reg-card">
+      <div class="reg-dot"></div>
+      <div>
+        <div class="reg-law">Drugs Price Control Order</div>
+        <div class="reg-coverage">MRP mandatory on all drug labels</div>
+      </div>
+    </div>
+    <div class="reg-card">
+      <div class="reg-dot"></div>
+      <div>
+        <div class="reg-law">Legal Metrology Act</div>
+        <div class="reg-coverage">Net quantity declaration required on all packs</div>
+      </div>
+    </div>
+    <div class="reg-card">
+      <div class="reg-dot"></div>
+      <div>
+        <div class="reg-law">21 CFR Part 201 (FDA)</div>
+        <div class="reg-coverage">US drug labelling regulations — FDA export mode</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="cta-inner reveal">
+    <h2 class="cta-title">Try Labelyze now.<br>It's free.</h2>
+    <p class="cta-sub">No installation. No account. No licence fee.<br>Just <em>accurate, instant compliance intelligence.</em></p>
+    <div class="cta-btns">
+      <a href="https://labelyze-ksf49tykdvbqgkw2if46mb.streamlit.app" target="_blank" class="btn-primary">
+        <span>Launch the tool</span>
+        <span>→</span>
+      </a>
+      <a href="https://github.com/zainanaqi666/Labelyze" target="_blank" class="btn-secondary">
+        View source code
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Label<span>yze</span></div>
+  <div class="footer-links">
+    <a href="https://labelyze-ksf49tykdvbqgkw2if46mb.streamlit.app" target="_blank">Launch Tool</a>
+    <a href="https://github.com/zainanaqi666/Labelyze" target="_blank">GitHub</a>
+    <a href="https://www.linkedin.com/in/zaina-naqi-70327b287" target="_blank">LinkedIn</a>
+  </div>
+  <div class="footer-copy">© 2026 Zaina Naqi</div>
+</footer>
+
+<script>
+// Custom cursor
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursor.style.left = mx - 6 + 'px';
+  cursor.style.top = my - 6 + 'px';
+});
+
+function animateRing() {
+  rx += (mx - rx - 18) * 0.12;
+  ry += (my - ry - 18) * 0.12;
+  ring.style.left = rx + 'px';
+  ring.style.top = ry + 'px';
+  requestAnimationFrame(animateRing);
+}
+animateRing();
+
+document.querySelectorAll('a, button').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cursor.style.transform = 'scale(2)';
+    ring.style.transform = 'scale(1.5)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cursor.style.transform = 'scale(1)';
+    ring.style.transform = 'scale(1)';
+  });
+});
+
+// 3D particle canvas
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [], mouse = { x: W/2, y: H/2 };
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.z = Math.random() * 1000;
+    this.ox = this.x; this.oy = this.y;
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = (Math.random() - 0.5) * 0.3;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.color = Math.random() > 0.7 ? '201,168,76' : '136,146,164';
+    this.connected = [];
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    // Mouse influence
+    const dx = mouse.x - this.x;
+    const dy = mouse.y - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 150) {
+      this.x -= dx * 0.002;
+      this.y -= dy * 0.002;
+    }
+    if (this.x < 0 || this.x > W) this.vx *= -1;
+    if (this.y < 0 || this.y > H) this.vy *= -1;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.color},${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function connectParticles() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 120) {
+        const opacity = (1 - dist/120) * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(201,168,76,${opacity})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+// Floating geometric shapes
+const shapes = [];
+for (let i = 0; i < 6; i++) {
+  shapes.push({
+    x: Math.random() * W, y: Math.random() * H,
+    size: Math.random() * 60 + 20,
+    vx: (Math.random()-0.5)*0.2, vy: (Math.random()-0.5)*0.2,
+    rot: Math.random() * Math.PI * 2,
+    rotV: (Math.random()-0.5)*0.005,
+    opacity: Math.random() * 0.06 + 0.02,
+    sides: Math.floor(Math.random() * 3) + 3
+  });
+}
+
+function drawShape(s) {
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.rot);
+  ctx.beginPath();
+  for (let i = 0; i < s.sides; i++) {
+    const angle = (i / s.sides) * Math.PI * 2 - Math.PI/2;
+    const x = Math.cos(angle) * s.size;
+    const y = Math.sin(angle) * s.size;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = `rgba(201,168,76,${s.opacity})`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function animate() {
+  ctx.clearRect(0, 0, W, H);
+  shapes.forEach(s => {
+    s.x += s.vx; s.y += s.vy; s.rot += s.rotV;
+    if (s.x < -100 || s.x > W+100) s.vx *= -1;
+    if (s.y < -100 || s.y > H+100) s.vy *= -1;
+    drawShape(s);
+  });
+  connectParticles();
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animate);
+}
+animate();
+
+// Scroll reveal
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+revealEls.forEach(el => observer.observe(el));
+
+// Number counter animation
+function animateCounter(el, target, suffix='') {
+  let start = 0;
+  const duration = 2000;
+  const step = timestamp => {
+    if (!start) start = timestamp;
+    const progress = Math.min((timestamp - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.floor(eased * target);
+    el.textContent = current.toLocaleString() + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+const statsObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const nums = entry.target.querySelectorAll('.stat-number');
+      nums[0] && animateCounter(nums[0], 3000, '+');
+      nums[1] && animateCounter(nums[1], 100, '+');
+      nums[2] && animateCounter(nums[2], 10, '');
+      statsObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+const statsBar = document.querySelector('.stats-inner');
+if (statsBar) statsObserver.observe(statsBar);
+</script>
+</body>
+</html>
