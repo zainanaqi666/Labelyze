@@ -3,4 +3,9 @@ sentence-transformers
 fpdf2
 requests
 Pillow
+easyocr
+opencv-python-headless
+python-dotenv
+numpy
 pytesseract
+
